@@ -1,0 +1,34 @@
+{
+  "name": "rokto-britto",
+  "version": "1.0.0",
+  "description": "Rokto Britto (রক্ত বৃত্ত) - Location Based Live Blood Info Application",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "test": "npm --prefix server run test",
+    "test:unit": "npm --prefix server run test:unit",
+    "test:integration": "npm --prefix server run test:integration",
+    "build": "npm --prefix server run build && npm --prefix client run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "keywords": [
+    "blood-donation",
+    "emergency",
+    "geolocation",
+    "socketio",
+    "prisma",
+    "express",
+    "nextjs",
+    "lts"
+  ],
+  "author": "Rokto Britto Team",
+  "license": "ISC"
+}

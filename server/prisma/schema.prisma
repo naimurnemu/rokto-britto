@@ -1,0 +1,209 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BloodGroup {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+}
+
+enum RequestStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum UrgencyLevel {
+  EMERGENCY
+  HIGH
+  STANDARD
+}
+
+enum TransactionType {
+  INITIAL_DEPOSIT
+  WALLET_TOPUP
+  OUTREACH_MESSAGE_FEE
+}
+
+enum SenderType {
+  DONOR
+  REQUESTER
+  BLOOD_BANK
+}
+
+model User {
+  id                    String         @id @default(uuid())
+  email                 String?        @unique
+  passwordHash          String?
+  phone                 String?        @unique
+  fullName              String         @default("User")
+  firstName             String?
+  lastName              String?
+  dateOfBirth           DateTime?
+  gender                String?        // "MALE", "FEMALE", "OTHER"
+  profession            String?        // "STUDENT", "EMPLOYEE", "TEACHER", "LABOR", "DOCTOR", "ENGINEER", "BUSINESS", "OTHER"
+  bloodGroup            BloodGroup     @default(A_POSITIVE)
+  hemoglobin            Float?         // Optional hemoglobin in g/dL
+  locationType          String?        @default("MANUAL") // "AUTOMATIC" | "MANUAL"
+  address               String?
+  latitude              Float          @default(23.8103)
+  longitude             Float          @default(90.4125)
+  isDonorAvailable      Boolean        @default(false)
+  isActive              Boolean        @default(true)
+  isProfileComplete     Boolean        @default(false)
+  penaltyStrikes        Int            @default(0)
+  isBanned              Boolean        @default(false)
+  isSuspended           Boolean        @default(false)
+  suspendedReason       String?
+  googleId              String?
+  resetPasswordToken    String?
+  resetPasswordExpires  DateTime?
+  role                  String         @default("FINDER") // "FINDER", "DONOR", "AGENCY", "SUBAGENT", "ADMIN"
+  agencyId              String?        // For SUBAGENT: References parent Agency/BloodBank ID
+  agency                BloodBank?     @relation("AgencySubagents", fields: [agencyId], references: [id], onDelete: SetNull)
+  permissions           String[]       @default([]) // ["DISPATCH_OUTREACH", "MANAGE_INVENTORY", "COORDINATE_CHATS", "VERIFY_DONORS"]
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  // Relationships
+  bloodRequests         BloodRequest[] @relation("UserRequests")
+  donorChatSessions     ChatSession[]  @relation("DonorChats")
+  requesterChatSessions ChatSession[]  @relation("RequesterChats")
+  reportsFiled          Report[]       @relation("ReporterRelation")
+  reportsReceived       Report[]       @relation("TargetRelation")
+  reviewsGiven          Review[]       @relation("UserReviews")
+
+  @@index([latitude, longitude])
+  @@index([bloodGroup, isDonorAvailable, isBanned])
+  @@index([isSuspended, isProfileComplete])
+}
+
+model BloodRequest {
+  id                   String        @id @default(uuid())
+  requesterId          String
+  requester            User          @relation("UserRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  requiredBloodGroup   BloodGroup
+  unitsNeeded          Int           @default(1)
+  hospitalName         String
+  hospitalAddress      String
+  latitude             Float
+  longitude            Float
+  urgency              UrgencyLevel  @default(EMERGENCY)
+  status               RequestStatus @default(ACTIVE)
+  notes                String?
+  matchingDonorsNearby Int           @default(0)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  chatSessions         ChatSession[]
+
+  @@index([status, requiredBloodGroup])
+  @@index([latitude, longitude])
+}
+
+model ChatSession {
+  id                 String        @id @default(uuid())
+  bloodRequestId     String
+  bloodRequest       BloodRequest  @relation(fields: [bloodRequestId], references: [id], onDelete: Cascade)
+  donorId            String
+  donor              User          @relation("DonorChats", fields: [donorId], references: [id], onDelete: Cascade)
+  requesterId        String
+  requester          User          @relation("RequesterChats", fields: [requesterId], references: [id], onDelete: Cascade)
+  scheduledTime      DateTime
+  isFirstMessageSent Boolean       @default(false)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  messages           ChatMessage[]
+
+  @@unique([bloodRequestId, donorId])
+}
+
+model ChatMessage {
+  id            String      @id @default(uuid())
+  chatSessionId String
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  senderId      String
+  senderType    SenderType
+  message       String
+  createdAt     DateTime    @default(now())
+}
+
+model BloodBank {
+  id                    String        @id @default(uuid())
+  name                  String
+  licenseNumber         String        @unique
+  email                 String        @unique
+  phone                 String
+  address               String
+  latitude              Float
+  longitude             Float
+  walletBalance         Float         @default(0.0) // Requires min 500 BDT to activate
+  ratingScore           Float         @default(5.0)
+  isApproved            Boolean       @default(false)
+  status                String        @default("PENDING") // "PENDING", "APPROVED", "REJECTED", "SUSPENDED"
+  isSuspended           Boolean       @default(false)
+  contactPerson         String?
+  passwordHash          String?
+  resetPasswordToken    String?
+  resetPasswordExpires  DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  transactions          Transaction[]
+  reviews               Review[]
+  subagents             User[]        @relation("AgencySubagents")
+
+  @@index([latitude, longitude])
+  @@index([status, isApproved, isSuspended])
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  bloodBankId String
+  bloodBank   BloodBank       @relation(fields: [bloodBankId], references: [id], onDelete: Cascade)
+  amount      Float
+  type        TransactionType
+  description String
+  status      String          @default("COMPLETED") // "COMPLETED", "FAILED"
+  createdAt   DateTime        @default(now())
+
+  @@index([bloodBankId])
+}
+
+model Report {
+  id           String   @id @default(uuid())
+  reporterId   String
+  reporter     User     @relation("ReporterRelation", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetUserId String
+  targetUser   User     @relation("TargetRelation", fields: [targetUserId], references: [id], onDelete: Cascade)
+  reason       String
+  createdAt    DateTime @default(now())
+
+  @@index([targetUserId])
+}
+
+model Review {
+  id            String    @id @default(uuid())
+  reviewerId    String
+  reviewer      User      @relation("UserReviews", fields: [reviewerId], references: [id], onDelete: Cascade)
+  bloodBankId   String
+  bloodBank     BloodBank @relation(fields: [bloodBankId], references: [id], onDelete: Cascade)
+  transactionId String?   // Verified purchase required
+  rating        Int       // 1 to 5
+  comment       String
+  createdAt     DateTime  @default(now())
+
+  @@index([bloodBankId])
+}
