@@ -1,8 +1,77 @@
-/node_modules
-*/node_modules
+# ==============================
+# Dependencies
+# ==============================
+/node_modules/
+/client/node_modules/
+/server/node_modules/
+**/node_modules/
 
+# ==============================
+# Environment variables and secrets
+# ==============================
 .env
 .env.*
-*/.env
-*/.env.*
+**/.env
+**/.env.*
 
+# Allow example environment templates
+!.env.example
+!**/.env.example
+!.env.sample
+!**/.env.sample
+
+# ==============================
+# Build outputs
+# ==============================
+/client/dist/
+/server/dist/
+**/dist/
+/client/.next/
+/server/.next/
+**/.next/
+
+# Other common build directories
+**/build/
+**/out/
+**/coverage/
+
+# ==============================
+# Logs
+# ==============================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ==============================
+# Framework and tool caches
+# ==============================
+**/.cache/
+**/.turbo/
+**/.vercel/
+**/.parcel-cache/
+**/.eslintcache
+**/.next/cache/
+
+# ==============================
+# TypeScript
+# ==============================
+*.tsbuildinfo
+
+# ==============================
+# Operating system files
+# ==============================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==============================
+# Editor files
+# ==============================
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
